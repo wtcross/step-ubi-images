@@ -1,25 +1,8 @@
 # Minimal step-ca image with PKCS#11 support
 # Uses p11-kit client libraries to connect to a PKCS#11 socket for private key operations
 
-FROM registry.access.redhat.com/ubi10/ubi AS ca-builder
-
-# Install build dependencies (pcsc-lite-devel built from source to avoid CodeReady Builder requirement)
-ARG PCSC_LITE_VERSION="2.4.1"
-# Ludovic Rousseau's GPG key (pcsc-lite maintainer) - https://pcsclite.apdu.fr/
-ARG PCSC_LITE_GPG_KEY="F5E11B9FFE911146F41D953D78A1B4DFE8F9C57E"
-RUN dnf install -y --nodocs make gcc pkgconf golang gnupg2 xz \
-    && dnf clean all \
-    && curl -sSfL "https://pcsclite.apdu.fr/files/pcsc-lite-${PCSC_LITE_VERSION}.tar.xz" -o /tmp/pcsc-lite.tar.xz \
-    && curl -sSfL "https://pcsclite.apdu.fr/files/pcsc-lite-${PCSC_LITE_VERSION}.tar.xz.asc" -o /tmp/pcsc-lite.tar.xz.asc \
-    && gpg --keyserver keyserver.ubuntu.com --recv-keys "${PCSC_LITE_GPG_KEY}" \
-    && gpg --verify /tmp/pcsc-lite.tar.xz.asc /tmp/pcsc-lite.tar.xz \
-    && tar -xf /tmp/pcsc-lite.tar.xz -C /tmp \
-    && cd /tmp/pcsc-lite-${PCSC_LITE_VERSION} \
-    && ./configure --disable-libsystemd --disable-libudev \
-    && make -j$(nproc) \
-    && make install \
-    && rm -rf /tmp/pcsc-lite* \
-    && ldconfig
+ARG BASE_BUILDER_IMAGE=ghcr.io/wtcross/ubi10-builder:latest
+FROM ${BASE_BUILDER_IMAGE} AS ca-builder
 
 ARG STEP_CA_VERSION
 ARG COSIGN_VERSION="3.0.4"

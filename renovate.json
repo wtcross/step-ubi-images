@@ -30,6 +30,26 @@
       ],
       "depNameTemplate": "smallstep/step-kms-plugin",
       "datasourceTemplate": "github-tags"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^versions\\.json$"],
+      "matchStrings": [
+        "\"meson\":\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "mesonbuild/meson",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^versions\\.json$"],
+      "matchStrings": [
+        "\"pcsc-lite\":\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "LudovicRousseau/PCSC",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^pcsc-(?<version>.*)$"
     }
   ],
   "packageRules": [
@@ -41,6 +61,10 @@
     {
       "matchDepNames": ["smallstep/certificates", "smallstep/cli", "smallstep/step-kms-plugin"],
       "groupName": "Smallstep versions"
+    },
+    {
+      "matchDepNames": ["mesonbuild/meson", "LudovicRousseau/PCSC"],
+      "groupName": "Base builder dependencies"
     }
   ]
 }

@@ -10,8 +10,17 @@ If you prefer not to trust a third-party container image, you can use the Contai
 
 ## Build
 
+Images are built automatically by GitHub Actions. To build locally:
+
 ```bash
-./build-and-push.sh
+# Version is defined in versions.json at the repository root
+STEP_CLI_VERSION=$(jq -r '."step-cli"' ../versions.json)
+
+podman build \
+    --build-arg STEP_CLI_VERSION="${STEP_CLI_VERSION}" \
+    -t step-cli:latest \
+    -f ubi10.Containerfile \
+    .
 ```
 
 ## Helper Scripts

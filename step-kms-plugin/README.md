@@ -14,9 +14,23 @@ If you prefer not to trust a third-party container image, you can use the Contai
 
 ## Build
 
+Images are built automatically by GitHub Actions. To build locally:
+
 ```bash
-./build-and-push.sh
+# Versions are defined in versions.json at the repository root
+STEP_KMS_PLUGIN_TAG=$(jq -r '."step-kms-plugin"' ../versions.json)
+STEP_CLI_VERSION=$(jq -r '."step-cli"' ../versions.json)
+
+podman build \
+    --build-arg BASE_BUILDER_IMAGE=ghcr.io/wtcross/ubi10-builder:latest \
+    --build-arg STEP_KMS_PLUGIN_TAG="${STEP_KMS_PLUGIN_TAG}" \
+    --build-arg STEP_CLI_VERSION="${STEP_CLI_VERSION}" \
+    -t step-kms-plugin:latest \
+    -f ubi10.pkcs11.Containerfile \
+    .
 ```
+
+**Note:** This image depends on the `ubi10-builder` base image which contains pcsc-lite for PKCS#11 support.
 
 ## Helper Scripts
 

@@ -1,5 +1,7 @@
 {
   "step-ca": "0.29.0",
   "step-cli": "0.29.0",
-  "step-kms-plugin": "v0.16.0"
+  "step-kms-plugin": "v0.16.0",
+  "meson": "1.10.0",
+  "pcsc-lite": "2.4.1"
 }
