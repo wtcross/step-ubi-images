@@ -90,8 +90,12 @@ jobs:
       - name: Extract versions and set tags
         id: prep
         run: |
+          M4_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '.m4')
+          FLEX_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '.flex')
           MESON_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '.meson')
           PCSC_LITE_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '."pcsc-lite"')
+          echo "m4=${M4_VERSION}" >> $GITHUB_OUTPUT
+          echo "flex=${FLEX_VERSION}" >> $GITHUB_OUTPUT
           echo "meson=${MESON_VERSION}" >> $GITHUB_OUTPUT
           echo "pcsc-lite=${PCSC_LITE_VERSION}" >> $GITHUB_OUTPUT
 
@@ -118,6 +122,8 @@ jobs:
           done
 
           podman build \
+            --build-arg M4_VERSION=${{ steps.prep.outputs.m4 }} \
+            --build-arg FLEX_VERSION=${{ steps.prep.outputs.flex }} \
             --build-arg MESON_VERSION=${{ steps.prep.outputs.meson }} \
             --build-arg PCSC_LITE_VERSION=${{ steps.prep.outputs.pcsc-lite }} \
             ${TAG_ARGS} \
