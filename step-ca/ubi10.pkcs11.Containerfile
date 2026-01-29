@@ -3,10 +3,9 @@
 
 FROM registry.access.redhat.com/ubi10/ubi AS ca-builder
 
-RUN dnf install -y \
-    --nodocs \
-    --enablerepo=codeready-builder-for-rhel-10-x86_64-rpms \
-    make gcc pkgconf golang pcsc-lite-devel \
+RUN dnf install -y --nodocs \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-10.noarch.rpm \
+    && dnf install -y --nodocs make gcc pkgconf golang pcsc-lite-devel \
     && dnf clean all
 
 ARG STEP_CA_VERSION
