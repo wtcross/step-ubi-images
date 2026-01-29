@@ -2,6 +2,8 @@
   "step-ca": "0.29.0",
   "step-cli": "0.29.0",
   "step-kms-plugin": "v0.16.0",
+  "m4": "1.4.20",
+  "flex": "2.6.4",
   "meson": "1.10.0",
   "pcsc-lite": "2.4.1"
 }

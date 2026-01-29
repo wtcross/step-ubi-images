@@ -50,6 +50,25 @@
       "depNameTemplate": "LudovicRousseau/PCSC",
       "datasourceTemplate": "github-tags",
       "extractVersionTemplate": "^pcsc-(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^versions\\.json$"],
+      "matchStrings": [
+        "\"flex\":\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "westes/flex",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^versions\\.json$"],
+      "matchStrings": [
+        "\"m4\":\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "gnu/m4",
+      "datasourceTemplate": "custom.gnu-ftp"
     }
   ],
   "packageRules": [
@@ -63,7 +82,7 @@
       "groupName": "Smallstep versions"
     },
     {
-      "matchDepNames": ["mesonbuild/meson", "LudovicRousseau/PCSC"],
+      "matchDepNames": ["westes/flex", "mesonbuild/meson", "LudovicRousseau/PCSC", "gnu/m4"],
       "groupName": "Base builder dependencies"
     }
   ]
