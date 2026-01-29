@@ -1,6 +1,6 @@
-# UBI10 Base Builder Image
+# UBI10 Step Builder Image
 
-Base builder image for compiling Go applications with PKCS#11 support on UBI10. Includes m4, flex, meson and pcsc-lite built from source to avoid CodeReady Builder repository requirements.
+Builder image for compiling Go applications with PKCS#11 support on UBI10. Includes m4, flex, meson and pcsc-lite built from source to avoid CodeReady Builder repository requirements.
 
 ## Purpose
 
@@ -37,7 +37,7 @@ Renovate automatically tracks updates from:
 ## Build
 
 This image is built automatically by GitHub Actions when:
-- Files in `base-builder/` change
+- Files in `step-builder/` change
 - `versions.json` changes (meson or pcsc-lite versions)
 - Scheduled weekly rebuild
 - Manual workflow dispatch
@@ -50,7 +50,7 @@ podman build \
     --build-arg FLEX_VERSION=2.6.4 \
     --build-arg MESON_VERSION=1.10.0 \
     --build-arg PCSC_LITE_VERSION=2.4.1 \
-    -t ubi10-builder:latest \
+    -t step-builder:latest \
     -f ubi10.Containerfile \
     .
 ```

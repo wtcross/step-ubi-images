@@ -1,4 +1,4 @@
-# Base builder image with m4, flex, meson and pcsc-lite built from source
+# Step builder image with m4, flex, meson and pcsc-lite built from source
 # Avoids CodeReady Builder repo requirement for pcsc-lite-devel
 
 FROM registry.access.redhat.com/ubi10/ubi

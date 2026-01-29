@@ -1,7 +1,7 @@
 # Minimal step-kms-plugin image with PKCS#11 support
 # Contains step-kms-plugin and step-cli for HSM key and certificate operations
 
-ARG BASE_BUILDER_IMAGE=ghcr.io/wtcross/ubi10-builder:latest
+ARG BASE_BUILDER_IMAGE=ghcr.io/wtcross/step-builder:latest
 FROM ${BASE_BUILDER_IMAGE} AS kms-builder
 
 # NOTE: step-kms-plugin does not provide cosign-signed source tarballs.

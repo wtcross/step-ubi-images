@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'base-builder/**'
+      - 'step-builder/**'
       - 'step-ca/**'
       - 'step-cli/**'
       - 'step-kms-plugin/**'
@@ -13,7 +13,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'base-builder/**'
+      - 'step-builder/**'
       - 'step-ca/**'
       - 'step-cli/**'
       - 'step-kms-plugin/**'
@@ -31,7 +31,7 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-      base-builder: ${{ steps.changes.outputs.base-builder }}
+      step-builder: ${{ steps.changes.outputs.step-builder }}
       step-ca: ${{ steps.changes.outputs.step-ca }}
       step-cli: ${{ steps.changes.outputs.step-cli }}
       step-kms-plugin: ${{ steps.changes.outputs.step-kms-plugin }}
@@ -46,18 +46,18 @@ jobs:
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
         with:
           filters: |
-            base-builder:
-              - 'base-builder/**'
+            step-builder:
+              - 'step-builder/**'
               - 'versions.json'
             step-ca:
-              - 'base-builder/**'
+              - 'step-builder/**'
               - 'step-ca/**'
               - 'versions.json'
             step-cli:
               - 'step-cli/**'
               - 'versions.json'
             step-kms-plugin:
-              - 'base-builder/**'
+              - 'step-builder/**'
               - 'step-kms-plugin/**'
               - 'versions.json'
 
@@ -69,14 +69,14 @@ jobs:
       - name: Set all outputs for scheduled/manual runs
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "base-builder=true" >> $GITHUB_OUTPUT
+          echo "step-builder=true" >> $GITHUB_OUTPUT
           echo "step-ca=true" >> $GITHUB_OUTPUT
           echo "step-cli=true" >> $GITHUB_OUTPUT
           echo "step-kms-plugin=true" >> $GITHUB_OUTPUT
 
-  build-base-builder:
+  build-step-builder:
     needs: detect-changes
-    if: needs.detect-changes.outputs.base-builder == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: needs.detect-changes.outputs.step-builder == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -99,7 +99,7 @@ jobs:
           echo "meson=${MESON_VERSION}" >> $GITHUB_OUTPUT
           echo "pcsc-lite=${PCSC_LITE_VERSION}" >> $GITHUB_OUTPUT
 
-          IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/ubi10-builder"
+          IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-builder"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -127,8 +127,8 @@ jobs:
             --build-arg MESON_VERSION=${{ steps.prep.outputs.meson }} \
             --build-arg PCSC_LITE_VERSION=${{ steps.prep.outputs.pcsc-lite }} \
             ${TAG_ARGS} \
-            -f ./base-builder/ubi10.Containerfile \
-            ./base-builder
+            -f ./step-builder/ubi10.Containerfile \
+            ./step-builder
 
       - name: Push image
         if: github.event_name != 'pull_request'
@@ -226,8 +226,8 @@ jobs:
           done
 
   build-step-ca:
-    needs: [detect-changes, build-base-builder]
-    if: always() && (needs.detect-changes.outputs.step-ca == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (needs.build-base-builder.result == 'success' || needs.build-base-builder.result == 'skipped')
+    needs: [detect-changes, build-step-builder]
+    if: always() && (needs.detect-changes.outputs.step-ca == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (needs.build-step-builder.result == 'success' || needs.build-step-builder.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -246,7 +246,7 @@ jobs:
           echo "step-cli=${STEP_CLI_VERSION}" >> $GITHUB_OUTPUT
 
           IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-ca"
-          BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/ubi10-builder"
+          BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-builder"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -320,8 +320,8 @@ jobs:
           done
 
   build-step-kms-plugin:
-    needs: [detect-changes, build-base-builder]
-    if: always() && (needs.detect-changes.outputs.step-kms-plugin == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (needs.build-base-builder.result == 'success' || needs.build-base-builder.result == 'skipped')
+    needs: [detect-changes, build-step-builder]
+    if: always() && (needs.detect-changes.outputs.step-kms-plugin == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (needs.build-step-builder.result == 'success' || needs.build-step-builder.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -340,7 +340,7 @@ jobs:
           echo "step-cli=${STEP_CLI_VERSION}" >> $GITHUB_OUTPUT
 
           IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-kms-plugin"
-          BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/ubi10-builder"
+          BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-builder"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT

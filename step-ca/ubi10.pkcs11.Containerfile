@@ -1,7 +1,7 @@
 # Minimal step-ca image with PKCS#11 support
 # Uses p11-kit client libraries to connect to a PKCS#11 socket for private key operations
 
-ARG BASE_BUILDER_IMAGE=ghcr.io/wtcross/ubi10-builder:latest
+ARG BASE_BUILDER_IMAGE=ghcr.io/wtcross/step-builder:latest
 FROM ${BASE_BUILDER_IMAGE} AS ca-builder
 
 ARG STEP_CA_VERSION
