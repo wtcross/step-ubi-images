@@ -1,0 +1,60 @@
+# Claude Code artifacts
+.claude/
+
+# Claude sandbox artifacts
+.bash_profile
+.bashrc
+.gitconfig
+.gitmodules
+.idea
+.mcp.json
+.profile
+.ripgreprc
+.vscode
+.zprofile
+.zshrc
+
+# Editor and IDE
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Container build artifacts
+*.tar
+*.tar.gz
+*.tgz
+*.oci
+
+# Podman/Docker
+.containerignore
+
+# Build output
+build/
+dist/
+out/
+
+# Credentials and secrets
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+auth.json
+config.json
+!renovate.json
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp

@@ -1,0 +1,288 @@
+name: Build and Scan Container Images
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'step-ca/**'
+      - 'step-cli/**'
+      - 'step-kms-plugin/**'
+      - 'versions.json'
+      - '.github/workflows/build-images.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'step-ca/**'
+      - 'step-cli/**'
+      - 'step-kms-plugin/**'
+      - 'versions.json'
+      - '.github/workflows/build-images.yml'
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      step-ca: ${{ steps.changes.outputs.step-ca }}
+      step-cli: ${{ steps.changes.outputs.step-cli }}
+      step-kms-plugin: ${{ steps.changes.outputs.step-kms-plugin }}
+      versions: ${{ steps.versions.outputs.json }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        with:
+          filters: |
+            step-ca:
+              - 'step-ca/**'
+              - 'versions.json'
+            step-cli:
+              - 'step-cli/**'
+              - 'versions.json'
+            step-kms-plugin:
+              - 'step-kms-plugin/**'
+              - 'versions.json'
+
+      - name: Read versions
+        id: versions
+        run: |
+          echo "json=$(cat versions.json | jq -c .)" >> $GITHUB_OUTPUT
+
+      - name: Set all outputs for scheduled/manual runs
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "step-ca=true" >> $GITHUB_OUTPUT
+          echo "step-cli=true" >> $GITHUB_OUTPUT
+          echo "step-kms-plugin=true" >> $GITHUB_OUTPUT
+
+  build-step-cli:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.step-cli == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract versions and set tags
+        id: prep
+        run: |
+          STEP_CLI_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '."step-cli"')
+          echo "step-cli=${STEP_CLI_VERSION}" >> $GITHUB_OUTPUT
+
+          IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "primary_tag=v${STEP_CLI_VERSION}" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_BASE}:v${STEP_CLI_VERSION} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: |
+          TAG_ARGS=""
+          for tag in ${{ steps.prep.outputs.tags }}; do
+            TAG_ARGS="${TAG_ARGS} --tag ${tag}"
+          done
+
+          podman build \
+            --build-arg STEP_CLI_VERSION=${{ steps.prep.outputs.step-cli }} \
+            ${TAG_ARGS} \
+            -f ./step-cli/ubi10.Containerfile \
+            ./step-cli
+
+      - name: Export image for Trivy scan
+        run: |
+          podman save -o step-cli-image.tar ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli:${{ steps.prep.outputs.primary_tag }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          input: 'step-cli-image.tar'
+          format: 'sarif'
+          output: 'trivy-results-step-cli.sarif'
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-step-cli.sarif'
+          category: 'step-cli'
+
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: |
+          for tag in ${{ steps.prep.outputs.tags }}; do
+            podman push "${tag}"
+          done
+
+  build-step-ca:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.step-ca == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract versions and set tags
+        id: prep
+        run: |
+          STEP_CA_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '."step-ca"')
+          STEP_CLI_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '."step-cli"')
+          echo "step-ca=${STEP_CA_VERSION}" >> $GITHUB_OUTPUT
+          echo "step-cli=${STEP_CLI_VERSION}" >> $GITHUB_OUTPUT
+
+          IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-ca"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "primary_tag=v${STEP_CA_VERSION}" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_BASE}:v${STEP_CA_VERSION} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: |
+          TAG_ARGS=""
+          for tag in ${{ steps.prep.outputs.tags }}; do
+            TAG_ARGS="${TAG_ARGS} --tag ${tag}"
+          done
+
+          podman build \
+            --build-arg STEP_CA_VERSION=${{ steps.prep.outputs.step-ca }} \
+            --build-arg STEP_CLI_VERSION=${{ steps.prep.outputs.step-cli }} \
+            ${TAG_ARGS} \
+            -f ./step-ca/ubi10.pkcs11.Containerfile \
+            ./step-ca
+
+      - name: Export image for Trivy scan
+        run: |
+          podman save -o step-ca-image.tar ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-ca:${{ steps.prep.outputs.primary_tag }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          input: 'step-ca-image.tar'
+          format: 'sarif'
+          output: 'trivy-results-step-ca.sarif'
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-step-ca.sarif'
+          category: 'step-ca'
+
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: |
+          for tag in ${{ steps.prep.outputs.tags }}; do
+            podman push "${tag}"
+          done
+
+  build-step-kms-plugin:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.step-kms-plugin == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract versions and set tags
+        id: prep
+        run: |
+          STEP_KMS_PLUGIN_TAG=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '."step-kms-plugin"')
+          STEP_CLI_VERSION=$(echo '${{ needs.detect-changes.outputs.versions }}' | jq -r '."step-cli"')
+          echo "step-kms-plugin=${STEP_KMS_PLUGIN_TAG}" >> $GITHUB_OUTPUT
+          echo "step-cli=${STEP_CLI_VERSION}" >> $GITHUB_OUTPUT
+
+          IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-kms-plugin"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "primary_tag=${STEP_KMS_PLUGIN_TAG}" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_BASE}:${STEP_KMS_PLUGIN_TAG} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Build image
+        run: |
+          TAG_ARGS=""
+          for tag in ${{ steps.prep.outputs.tags }}; do
+            TAG_ARGS="${TAG_ARGS} --tag ${tag}"
+          done
+
+          podman build \
+            --build-arg STEP_KMS_PLUGIN_TAG=${{ steps.prep.outputs.step-kms-plugin }} \
+            --build-arg STEP_CLI_VERSION=${{ steps.prep.outputs.step-cli }} \
+            ${TAG_ARGS} \
+            -f ./step-kms-plugin/ubi10.pkcs11.Containerfile \
+            ./step-kms-plugin
+
+      - name: Export image for Trivy scan
+        run: |
+          podman save -o step-kms-plugin-image.tar ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-kms-plugin:${{ steps.prep.outputs.primary_tag }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          input: 'step-kms-plugin-image.tar'
+          format: 'sarif'
+          output: 'trivy-results-step-kms-plugin.sarif'
+          severity: 'CRITICAL'
+          exit-code: '1'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-step-kms-plugin.sarif'
+          category: 'step-kms-plugin'
+
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: |
+          for tag in ${{ steps.prep.outputs.tags }}; do
+            podman push "${tag}"
+          done

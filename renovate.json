@@ -1,0 +1,46 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^versions\\.json$"],
+      "matchStrings": [
+        "\"step-ca\":\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "smallstep/certificates",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^versions\\.json$"],
+      "matchStrings": [
+        "\"step-cli\":\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "smallstep/cli",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v?(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "fileMatch": ["^versions\\.json$"],
+      "matchStrings": [
+        "\"step-kms-plugin\":\\s*\"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "smallstep/step-kms-plugin",
+      "datasourceTemplate": "github-tags"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["dockerfile"],
+      "matchPackagePatterns": ["^registry.access.redhat.com/"],
+      "groupName": "Red Hat UBI base images"
+    },
+    {
+      "matchDepNames": ["smallstep/certificates", "smallstep/cli", "smallstep/step-kms-plugin"],
+      "groupName": "Smallstep versions"
+    }
+  ]
+}
