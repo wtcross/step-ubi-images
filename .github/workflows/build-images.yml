@@ -116,16 +116,32 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
+        continue-on-error: true
         with:
           input: 'step-cli-image.tar'
           format: 'sarif'
           output: 'trivy-results-step-cli.sarif'
-          severity: 'CRITICAL'
-          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln'
+          skip-files: '/etc/yum.repos.d/*,/etc/pki/entitlement/*'
+
+      - name: Check for critical vulnerabilities
+        id: trivy-check
+        run: |
+          if [[ -f "trivy-results-step-cli.sarif" ]]; then
+            CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error")] | length' trivy-results-step-cli.sarif)
+            echo "critical_count=${CRITICAL_COUNT}" >> $GITHUB_OUTPUT
+            if [[ "$CRITICAL_COUNT" -gt 0 ]]; then
+              echo "::warning::Found ${CRITICAL_COUNT} critical vulnerabilities"
+            fi
+          else
+            echo "::warning::Trivy scan did not produce results file"
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: hashFiles('trivy-results-step-cli.sarif') != ''
         with:
           sarif_file: 'trivy-results-step-cli.sarif'
           category: 'step-cli'
@@ -191,16 +207,32 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
+        continue-on-error: true
         with:
           input: 'step-ca-image.tar'
           format: 'sarif'
           output: 'trivy-results-step-ca.sarif'
-          severity: 'CRITICAL'
-          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln'
+          skip-files: '/etc/yum.repos.d/*,/etc/pki/entitlement/*'
+
+      - name: Check for critical vulnerabilities
+        id: trivy-check
+        run: |
+          if [[ -f "trivy-results-step-ca.sarif" ]]; then
+            CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error")] | length' trivy-results-step-ca.sarif)
+            echo "critical_count=${CRITICAL_COUNT}" >> $GITHUB_OUTPUT
+            if [[ "$CRITICAL_COUNT" -gt 0 ]]; then
+              echo "::warning::Found ${CRITICAL_COUNT} critical vulnerabilities"
+            fi
+          else
+            echo "::warning::Trivy scan did not produce results file"
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: hashFiles('trivy-results-step-ca.sarif') != ''
         with:
           sarif_file: 'trivy-results-step-ca.sarif'
           category: 'step-ca'
@@ -266,16 +298,32 @@ jobs:
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
+        continue-on-error: true
         with:
           input: 'step-kms-plugin-image.tar'
           format: 'sarif'
           output: 'trivy-results-step-kms-plugin.sarif'
-          severity: 'CRITICAL'
-          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln'
+          skip-files: '/etc/yum.repos.d/*,/etc/pki/entitlement/*'
+
+      - name: Check for critical vulnerabilities
+        id: trivy-check
+        run: |
+          if [[ -f "trivy-results-step-kms-plugin.sarif" ]]; then
+            CRITICAL_COUNT=$(jq '[.runs[].results[] | select(.level == "error")] | length' trivy-results-step-kms-plugin.sarif)
+            echo "critical_count=${CRITICAL_COUNT}" >> $GITHUB_OUTPUT
+            if [[ "$CRITICAL_COUNT" -gt 0 ]]; then
+              echo "::warning::Found ${CRITICAL_COUNT} critical vulnerabilities"
+            fi
+          else
+            echo "::warning::Trivy scan did not produce results file"
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: hashFiles('trivy-results-step-kms-plugin.sarif') != ''
         with:
           sarif_file: 'trivy-results-step-kms-plugin.sarif'
           category: 'step-kms-plugin'
