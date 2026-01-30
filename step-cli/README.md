@@ -10,7 +10,13 @@ If you prefer not to trust a third-party container image, you can use the Contai
 
 ## Build
 
-Images are built automatically by GitHub Actions. To build locally:
+This image is built automatically by GitHub Actions when:
+- Files in `step-cli/` change
+- `versions.json` changes
+- Scheduled weekly rebuild
+- Manual workflow dispatch
+
+To build locally:
 
 ```bash
 # Version is defined in versions.json at the repository root

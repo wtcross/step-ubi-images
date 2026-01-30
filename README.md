@@ -58,13 +58,14 @@ The verification confirms:
 
 - **Source-built components** (m4, flex, meson, pcsc-lite): Verified using GPG signatures from upstream maintainers
 - **Smallstep sources** (step-ca, step-cli): Verified using [cosign](https://github.com/sigstore/cosign) before compilation
+- **step-kms-plugin**: Built from git clone (Smallstep does not provide signed source tarballs for this component)
 
 ### Build Process
 
 Images are built automatically by GitHub Actions with:
 - Multi-stage builds to minimize final image size
 - Non-root user execution
-- Verification of all source artifacts before compilation
+- Verification of source artifacts where signatures are available (see above)
 
 ## License
 

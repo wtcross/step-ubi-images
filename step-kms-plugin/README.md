@@ -8,29 +8,36 @@ This image is **not distributed or signed by Smallstep**. The `step-kms-plugin` 
 
 For more information on PKCS#11 requirements, see the [Smallstep documentation on cryptographic protection](https://smallstep.com/docs/step-ca/cryptographic-protection/#pkcs-11).
 
-The build process uses [cosign](https://github.com/sigstore/cosign) to verify the integrity of the step-cli source code tarball before compiling. Note that step-kms-plugin itself is built from a git clone because Smallstep does not provide signed source tarballs for it.
+The step-cli binary is copied from the signed `step-cli` image. Note that step-kms-plugin itself is built from a git clone because Smallstep does not provide signed source tarballs for it.
 
 If you prefer not to trust a third-party container image, you can use the Containerfile in this directory to build your own.
 
 ## Build
 
-Images are built automatically by GitHub Actions. To build locally:
+This image is built automatically by GitHub Actions when:
+- Files in `step-builder/` or `step-kms-plugin/` change
+- `versions.json` changes
+- Scheduled weekly rebuild
+- Manual workflow dispatch
+
+To build locally:
 
 ```bash
-# Versions are defined in versions.json at the repository root
+# Version is defined in versions.json at the repository root
 STEP_KMS_PLUGIN_TAG=$(jq -r '."step-kms-plugin"' ../versions.json)
-STEP_CLI_VERSION=$(jq -r '."step-cli"' ../versions.json)
 
 podman build \
     --build-arg BASE_BUILDER_IMAGE=ghcr.io/wtcross/step-builder:latest \
+    --build-arg STEP_CLI_IMAGE=ghcr.io/wtcross/step-cli:latest \
     --build-arg STEP_KMS_PLUGIN_TAG="${STEP_KMS_PLUGIN_TAG}" \
-    --build-arg STEP_CLI_VERSION="${STEP_CLI_VERSION}" \
     -t step-kms-plugin:latest \
     -f ubi10.pkcs11.Containerfile \
     .
 ```
 
-**Note:** This image depends on the `step-builder` base image which contains pcsc-lite for PKCS#11 support.
+**Note:** This image depends on:
+- `step-builder` base image which contains pcsc-lite for PKCS#11 support
+- `step-cli` image for the step CLI binary
 
 ## Helper Scripts
 

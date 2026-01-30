@@ -8,29 +8,36 @@ This image is **not distributed or signed by Smallstep**. The official `step-ca`
 
 For more information on PKCS#11 requirements, see the [Smallstep documentation on cryptographic protection](https://smallstep.com/docs/step-ca/cryptographic-protection/#pkcs-11).
 
-The build process uses [cosign](https://github.com/sigstore/cosign) to verify the integrity of the step-ca and step-cli source code tarballs before compiling the binaries included in this image.
+The build process uses [cosign](https://github.com/sigstore/cosign) to verify the integrity of the step-ca source code tarball before compiling the binary. The step-cli binary is copied from the signed `step-cli` image.
 
 If you prefer not to trust a third-party container image, you can use the Containerfile in this directory to build your own.
 
 ## Build
 
-Images are built automatically by GitHub Actions. To build locally:
+This image is built automatically by GitHub Actions when:
+- Files in `step-builder/` or `step-ca/` change
+- `versions.json` changes
+- Scheduled weekly rebuild
+- Manual workflow dispatch
+
+To build locally:
 
 ```bash
-# Versions are defined in versions.json at the repository root
+# Version is defined in versions.json at the repository root
 STEP_CA_VERSION=$(jq -r '."step-ca"' ../versions.json)
-STEP_CLI_VERSION=$(jq -r '."step-cli"' ../versions.json)
 
 podman build \
     --build-arg BASE_BUILDER_IMAGE=ghcr.io/wtcross/step-builder:latest \
+    --build-arg STEP_CLI_IMAGE=ghcr.io/wtcross/step-cli:latest \
     --build-arg STEP_CA_VERSION="${STEP_CA_VERSION}" \
-    --build-arg STEP_CLI_VERSION="${STEP_CLI_VERSION}" \
     -t step-ca:latest \
     -f ubi10.pkcs11.Containerfile \
     .
 ```
 
-**Note:** This image depends on the `step-builder` base image which contains pcsc-lite for PKCS#11 support.
+**Note:** This image depends on:
+- `step-builder` base image which contains pcsc-lite for PKCS#11 support
+- `step-cli` image for the step CLI binary
 
 ## Required Environment Variables
 

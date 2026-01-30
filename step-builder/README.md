@@ -14,11 +14,14 @@ This image serves as a build dependency for:
 |-----------|-------------|
 | m4 | GNU macro processor (built from source with GPG verification) |
 | flex | Lexical analyzer generator (built from source with GPG verification) |
-| meson | Build system for pcsc-lite (built from source with GPG verification) |
+| meson | Build system for pcsc-lite (installed from source with GPG verification) |
 | pcsc-lite | PC/SC smart card library (built from source with GPG verification) |
 | golang | Go compiler |
 | gcc/g++ | C/C++ compilers |
 | make | Build tool |
+| python3 | Required for meson |
+| ninja-build | Required for meson builds |
+| pkgconf | Package configuration tool |
 
 ## Version Management
 
@@ -38,7 +41,7 @@ Renovate automatically tracks updates from:
 
 This image is built automatically by GitHub Actions when:
 - Files in `step-builder/` change
-- `versions.json` changes (meson or pcsc-lite versions)
+- `versions.json` changes
 - Scheduled weekly rebuild
 - Manual workflow dispatch
 
