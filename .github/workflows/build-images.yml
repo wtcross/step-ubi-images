@@ -285,6 +285,15 @@ jobs:
 
           IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-ca"
           BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-builder"
+          STEP_CLI_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli"
+
+          # Use digest from build-step-cli if available, otherwise fall back to latest
+          STEP_CLI_IMAGE="${{ needs.build-step-cli.outputs.image }}"
+          if [[ -z "${STEP_CLI_IMAGE}" ]]; then
+            STEP_CLI_IMAGE="${STEP_CLI_BASE}:latest"
+          fi
+          echo "step_cli_image=${STEP_CLI_IMAGE}" >> $GITHUB_OUTPUT
+
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -308,7 +317,7 @@ jobs:
           cosign verify \
             --certificate-identity-regexp "https://github\\.com/${{ github.repository }}/.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ needs.build-step-cli.outputs.image }}
+            ${{ steps.prep.outputs.step_cli_image }}
 
       - name: Build image
         run: |
@@ -319,7 +328,7 @@ jobs:
 
           podman build \
             --build-arg BASE_BUILDER_IMAGE=${{ steps.prep.outputs.base_builder_image }} \
-            --build-arg STEP_CLI_IMAGE=${{ needs.build-step-cli.outputs.image }} \
+            --build-arg STEP_CLI_IMAGE=${{ steps.prep.outputs.step_cli_image }} \
             --build-arg STEP_CA_VERSION=${{ steps.prep.outputs.step-ca }} \
             ${TAG_ARGS} \
             -f ./step-ca/ubi10.pkcs11.Containerfile \
@@ -402,6 +411,15 @@ jobs:
 
           IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-kms-plugin"
           BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-builder"
+          STEP_CLI_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli"
+
+          # Use digest from build-step-cli if available, otherwise fall back to latest
+          STEP_CLI_IMAGE="${{ needs.build-step-cli.outputs.image }}"
+          if [[ -z "${STEP_CLI_IMAGE}" ]]; then
+            STEP_CLI_IMAGE="${STEP_CLI_BASE}:latest"
+          fi
+          echo "step_cli_image=${STEP_CLI_IMAGE}" >> $GITHUB_OUTPUT
+
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
@@ -425,7 +443,7 @@ jobs:
           cosign verify \
             --certificate-identity-regexp "https://github\\.com/${{ github.repository }}/.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ needs.build-step-cli.outputs.image }}
+            ${{ steps.prep.outputs.step_cli_image }}
 
       - name: Build image
         run: |
@@ -436,7 +454,7 @@ jobs:
 
           podman build \
             --build-arg BASE_BUILDER_IMAGE=${{ steps.prep.outputs.base_builder_image }} \
-            --build-arg STEP_CLI_IMAGE=${{ needs.build-step-cli.outputs.image }} \
+            --build-arg STEP_CLI_IMAGE=${{ steps.prep.outputs.step_cli_image }} \
             --build-arg STEP_KMS_PLUGIN_TAG=${{ steps.prep.outputs.step-kms-plugin }} \
             ${TAG_ARGS} \
             -f ./step-kms-plugin/ubi10.pkcs11.Containerfile \
