@@ -39,7 +39,7 @@ See the [cosign installation documentation](https://docs.sigstore.dev/cosign/sys
 
 ```bash
 cosign verify \
-  --certificate-identity-regexp "https://github.com/wtcross/step-ubi-images/.github/workflows/build-images.yml@.*" \
+  --certificate-identity-regexp "https://github.com/wtcross/step-ubi-images/*" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   ghcr.io/wtcross/step-ca:latest
 ```
