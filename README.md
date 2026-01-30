@@ -18,7 +18,7 @@ If you prefer not to trust third-party container images, you can use the Contain
 
 | Image | Purpose | Documentation |
 |-------|---------|---------------|
-| `step-builder` | Builder image with PKCS#11 dependencies (m4, flex, meson, pcsc-lite) for compiling Go apps with HSM support | [step-builder/README.md](step-builder/README.md) |
+| `step-builder` | Builder image with dependencies (m4, flex, meson, pcsc-lite) needed to compile step-ca and step-kms-plugin with PKCS#11 HSM support | [step-builder/README.md](step-builder/README.md) |
 | `step-ca` | Certificate Authority with PKCS#11/HSM support for intermediate CA operations | [step-ca/README.md](step-ca/README.md) |
 | `step-kms-plugin` | HSM key and certificate operations (root CA setup, intermediate CSR signing) | [step-kms-plugin/README.md](step-kms-plugin/README.md) |
 | `step-cli` | CA administration tool for provisioner and policy management | [step-cli/README.md](step-cli/README.md) |
