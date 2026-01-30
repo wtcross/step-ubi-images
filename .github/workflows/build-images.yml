@@ -164,7 +164,7 @@ jobs:
       id-token: write
       security-events: write
     outputs:
-      image: ${{ steps.prep.outputs.image }}
+      image: ${{ steps.push.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -182,15 +182,12 @@ jobs:
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "image=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
           else
             echo "primary_tag=v${STEP_CLI_VERSION}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:v${STEP_CLI_VERSION} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
-            echo "image=${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to GHCR
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -213,6 +210,16 @@ jobs:
       - name: Export image for Trivy scan
         run: |
           podman save -o step-cli-image.tar ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli:${{ steps.prep.outputs.primary_tag }}
+
+      - name: Push image and capture digest
+        id: push
+        run: |
+          for tag in ${{ steps.prep.outputs.tags }}; do
+            podman push --digestfile /tmp/digest.txt "${tag}"
+          done
+          DIGEST=$(cat /tmp/digest.txt)
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+          echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli@${DIGEST}" >> $GITHUB_OUTPUT
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
@@ -246,22 +253,13 @@ jobs:
           sarif_file: 'trivy-results-step-cli.sarif'
           category: 'step-cli'
 
-      - name: Push image
-        if: github.event_name != 'pull_request'
-        run: |
-          for tag in ${{ steps.prep.outputs.tags }}; do
-            podman push "${tag}"
-          done
-
-      - name: Sign images with cosign
+      - name: Sign image with cosign
         if: github.event_name != 'pull_request'
         env:
           COSIGN_YES: "true"
         run: |
-          for tag in ${{ steps.prep.outputs.tags }}; do
-            echo "Signing ${tag}"
-            cosign sign "${tag}"
-          done
+          echo "Signing ${{ steps.push.outputs.image }}"
+          cosign sign "${{ steps.push.outputs.image }}"
 
   build-step-ca:
     needs: [detect-changes, build-step-builder, build-step-cli]
@@ -287,17 +285,14 @@ jobs:
 
           IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-ca"
           BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-builder"
-          STEP_CLI="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "base_builder_image=${BASE_BUILDER}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "step_cli_image=${STEP_CLI}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
           else
             echo "primary_tag=v${STEP_CA_VERSION}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:v${STEP_CA_VERSION} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
             echo "base_builder_image=${BASE_BUILDER}:latest" >> $GITHUB_OUTPUT
-            echo "step_cli_image=${STEP_CLI}:latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to GHCR
@@ -308,11 +303,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify step-cli image signature
+        if: github.event_name != 'pull_request'
         run: |
           cosign verify \
             --certificate-identity-regexp "https://github\\.com/${{ github.repository }}/.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ steps.prep.outputs.step_cli_image }}
+            ${{ needs.build-step-cli.outputs.image }}
 
       - name: Build image
         run: |
@@ -323,7 +319,7 @@ jobs:
 
           podman build \
             --build-arg BASE_BUILDER_IMAGE=${{ steps.prep.outputs.base_builder_image }} \
-            --build-arg STEP_CLI_IMAGE=${{ steps.prep.outputs.step_cli_image }} \
+            --build-arg STEP_CLI_IMAGE=${{ needs.build-step-cli.outputs.image }} \
             --build-arg STEP_CA_VERSION=${{ steps.prep.outputs.step-ca }} \
             ${TAG_ARGS} \
             -f ./step-ca/ubi10.pkcs11.Containerfile \
@@ -406,17 +402,14 @@ jobs:
 
           IMAGE_BASE="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-kms-plugin"
           BASE_BUILDER="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-builder"
-          STEP_CLI="${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/step-cli"
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             echo "primary_tag=pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
             echo "base_builder_image=${BASE_BUILDER}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
-            echo "step_cli_image=${STEP_CLI}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
           else
             echo "primary_tag=${STEP_KMS_PLUGIN_TAG}" >> $GITHUB_OUTPUT
             echo "tags=${IMAGE_BASE}:${STEP_KMS_PLUGIN_TAG} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
             echo "base_builder_image=${BASE_BUILDER}:latest" >> $GITHUB_OUTPUT
-            echo "step_cli_image=${STEP_CLI}:latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to GHCR
@@ -427,11 +420,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify step-cli image signature
+        if: github.event_name != 'pull_request'
         run: |
           cosign verify \
             --certificate-identity-regexp "https://github\\.com/${{ github.repository }}/.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ steps.prep.outputs.step_cli_image }}
+            ${{ needs.build-step-cli.outputs.image }}
 
       - name: Build image
         run: |
@@ -442,7 +436,7 @@ jobs:
 
           podman build \
             --build-arg BASE_BUILDER_IMAGE=${{ steps.prep.outputs.base_builder_image }} \
-            --build-arg STEP_CLI_IMAGE=${{ steps.prep.outputs.step_cli_image }} \
+            --build-arg STEP_CLI_IMAGE=${{ needs.build-step-cli.outputs.image }} \
             --build-arg STEP_KMS_PLUGIN_TAG=${{ steps.prep.outputs.step-kms-plugin }} \
             ${TAG_ARGS} \
             -f ./step-kms-plugin/ubi10.pkcs11.Containerfile \
