@@ -27,6 +27,31 @@ If you prefer not to trust third-party container images, you can use the Contain
 
 Component versions are defined in [`versions.json`](versions.json) at the repository root. [Renovate](https://docs.renovatebot.com/) automatically tracks updates from upstream sources.
 
+## Verifying Image Signatures
+
+All images are signed using [cosign](https://github.com/sigstore/cosign) keyless signing via the Sigstore public good instance.
+
+### Install cosign
+
+```bash
+# See https://docs.sigstore.dev/cosign/system_config/installation/
+brew install cosign  # macOS
+# or download from GitHub releases
+```
+
+### Verify an image
+
+```bash
+cosign verify \
+  --certificate-identity-regexp "https://github.com/wtcross/step-ubi-images/.github/workflows/build-images.yml@.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  ghcr.io/wtcross/step-ca:latest
+```
+
+The verification confirms:
+- The image was built by this repository's GitHub Actions workflow
+- The signature is recorded in Sigstore's public transparency log
+
 ## Security
 
 ### Source Verification

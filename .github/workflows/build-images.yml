@@ -81,11 +81,15 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     outputs:
       image: ${{ steps.prep.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Extract versions and set tags
         id: prep
@@ -106,7 +110,7 @@ jobs:
             echo "image=${IMAGE_BASE}:pr-${{ github.sha }}" >> $GITHUB_OUTPUT
           else
             echo "primary_tag=latest" >> $GITHUB_OUTPUT
-            echo "tags=${IMAGE_BASE}:meson-${MESON_VERSION}-pcsc-${PCSC_LITE_VERSION} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_BASE}:m4-${M4_VERSION}-flex-${FLEX_VERSION}-meson-${MESON_VERSION}-pcsc-${PCSC_LITE_VERSION} ${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
             echo "image=${IMAGE_BASE}:latest" >> $GITHUB_OUTPUT
           fi
 
@@ -131,10 +135,26 @@ jobs:
             ./step-builder
 
       - name: Push image
+        id: push
         if: github.event_name != 'pull_request'
         run: |
+          DIGESTS=""
           for tag in ${{ steps.prep.outputs.tags }}; do
-            podman push "${tag}"
+            DIGEST=$(podman push "${tag}" 2>&1 | grep -oP 'sha256:[a-f0-9]{64}' | head -1)
+            if [[ -n "$DIGEST" ]]; then
+              DIGESTS="${DIGESTS}${tag}@${DIGEST} "
+            fi
+          done
+          echo "digests=${DIGESTS}" >> $GITHUB_OUTPUT
+
+      - name: Sign images with cosign
+        if: github.event_name != 'pull_request'
+        env:
+          COSIGN_YES: "true"
+        run: |
+          for image_digest in ${{ steps.push.outputs.digests }}; do
+            echo "Signing ${image_digest}"
+            cosign sign "${image_digest}"
           done
 
   build-step-cli:
@@ -144,10 +164,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
       security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Extract versions and set tags
         id: prep
@@ -219,10 +243,26 @@ jobs:
           category: 'step-cli'
 
       - name: Push image
+        id: push
         if: github.event_name != 'pull_request'
         run: |
+          DIGESTS=""
           for tag in ${{ steps.prep.outputs.tags }}; do
-            podman push "${tag}"
+            DIGEST=$(podman push "${tag}" 2>&1 | grep -oP 'sha256:[a-f0-9]{64}' | head -1)
+            if [[ -n "$DIGEST" ]]; then
+              DIGESTS="${DIGESTS}${tag}@${DIGEST} "
+            fi
+          done
+          echo "digests=${DIGESTS}" >> $GITHUB_OUTPUT
+
+      - name: Sign images with cosign
+        if: github.event_name != 'pull_request'
+        env:
+          COSIGN_YES: "true"
+        run: |
+          for image_digest in ${{ steps.push.outputs.digests }}; do
+            echo "Signing ${image_digest}"
+            cosign sign "${image_digest}"
           done
 
   build-step-ca:
@@ -232,10 +272,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
       security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Extract versions and set tags
         id: prep
@@ -313,10 +357,26 @@ jobs:
           category: 'step-ca'
 
       - name: Push image
+        id: push
         if: github.event_name != 'pull_request'
         run: |
+          DIGESTS=""
           for tag in ${{ steps.prep.outputs.tags }}; do
-            podman push "${tag}"
+            DIGEST=$(podman push "${tag}" 2>&1 | grep -oP 'sha256:[a-f0-9]{64}' | head -1)
+            if [[ -n "$DIGEST" ]]; then
+              DIGESTS="${DIGESTS}${tag}@${DIGEST} "
+            fi
+          done
+          echo "digests=${DIGESTS}" >> $GITHUB_OUTPUT
+
+      - name: Sign images with cosign
+        if: github.event_name != 'pull_request'
+        env:
+          COSIGN_YES: "true"
+        run: |
+          for image_digest in ${{ steps.push.outputs.digests }}; do
+            echo "Signing ${image_digest}"
+            cosign sign "${image_digest}"
           done
 
   build-step-kms-plugin:
@@ -326,10 +386,14 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
       security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Extract versions and set tags
         id: prep
@@ -407,8 +471,24 @@ jobs:
           category: 'step-kms-plugin'
 
       - name: Push image
+        id: push
         if: github.event_name != 'pull_request'
         run: |
+          DIGESTS=""
           for tag in ${{ steps.prep.outputs.tags }}; do
-            podman push "${tag}"
+            DIGEST=$(podman push "${tag}" 2>&1 | grep -oP 'sha256:[a-f0-9]{64}' | head -1)
+            if [[ -n "$DIGEST" ]]; then
+              DIGESTS="${DIGESTS}${tag}@${DIGEST} "
+            fi
+          done
+          echo "digests=${DIGESTS}" >> $GITHUB_OUTPUT
+
+      - name: Sign images with cosign
+        if: github.event_name != 'pull_request'
+        env:
+          COSIGN_YES: "true"
+        run: |
+          for image_digest in ${{ steps.push.outputs.digests }}; do
+            echo "Signing ${image_digest}"
+            cosign sign "${image_digest}"
           done
