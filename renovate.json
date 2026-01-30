@@ -1,6 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
+  "customDatasources": {
+    "gnu-ftp": {
+      "defaultRegistryUrlTemplate": "https://ftpmirror.gnu.org/{{packageName}}/",
+      "format": "html",
+      "transformTemplates": [
+        "{ \"releases\": $map($filter($match($.html, /href=\"m4-([\\d.]+)\\.tar/g), function($v) { $v.groups[0] }), function($v) { {\"version\": $v} }) }"
+      ]
+    }
+  },
   "customManagers": [
     {
       "customType": "regex",
