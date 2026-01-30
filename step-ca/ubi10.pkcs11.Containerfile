@@ -2,6 +2,7 @@
 # Uses p11-kit client libraries to connect to a PKCS#11 socket for private key operations
 
 ARG BASE_BUILDER_IMAGE=ghcr.io/wtcross/step-builder:latest
+ARG STEP_CLI_IMAGE=ghcr.io/wtcross/step-cli:latest
 FROM ${BASE_BUILDER_IMAGE} AS ca-builder
 
 ARG STEP_CA_VERSION
@@ -33,7 +34,6 @@ RUN make V=1 GO_ENVS="CGO_ENABLED=1" bin/step-ca
 RUN setcap CAP_NET_BIND_SERVICE=+eip bin/step-ca
 
 # Use pre-built step-cli from signed image
-ARG STEP_CLI_IMAGE=ghcr.io/wtcross/step-cli:latest
 FROM ${STEP_CLI_IMAGE} AS step-cli
 
 # Create minimal rootfs with p11-kit client libraries

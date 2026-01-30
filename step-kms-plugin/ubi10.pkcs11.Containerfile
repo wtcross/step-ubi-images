@@ -2,6 +2,7 @@
 # Contains step-kms-plugin and step-cli for HSM key and certificate operations
 
 ARG BASE_BUILDER_IMAGE=ghcr.io/wtcross/step-builder:latest
+ARG STEP_CLI_IMAGE=ghcr.io/wtcross/step-cli:latest
 FROM ${BASE_BUILDER_IMAGE} AS kms-builder
 
 # NOTE: step-kms-plugin does not provide cosign-signed source tarballs.
@@ -14,7 +15,6 @@ WORKDIR /opt/app-root/src/step-kms-plugin
 RUN make V=1 build
 
 # Use pre-built step-cli from signed image
-ARG STEP_CLI_IMAGE=ghcr.io/wtcross/step-cli:latest
 FROM ${STEP_CLI_IMAGE} AS step-cli
 
 # Create minimal rootfs with p11-kit client libraries
