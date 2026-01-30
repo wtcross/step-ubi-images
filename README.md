@@ -33,11 +33,7 @@ All images are signed using [cosign](https://github.com/sigstore/cosign) keyless
 
 ### Install cosign
 
-```bash
-# See https://docs.sigstore.dev/cosign/system_config/installation/
-brew install cosign  # macOS
-# or download from GitHub releases
-```
+See the [cosign installation documentation](https://docs.sigstore.dev/cosign/system_config/installation/).
 
 ### Verify an image
 
